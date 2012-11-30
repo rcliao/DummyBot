@@ -493,18 +493,12 @@ public class MyBot extends Bot {
 			}
 		}
 	}
-
-	// defining combat group as group object
-	class Group {
-		LinkedList<Tile> myAntsInCombat = new LinkedList<Tile>();
-		LinkedList<Tile> enemyAntsInCombat = new LinkedList<Tile>();
-		int maxNumCloseOwnAnts = 0;
-		boolean isAggressive = false;
-	}
+	
 
 	// the whole combat method
 	private void combat() {
 		defineGroups();
+		Collections.sort(groups);
 		defineMoves();
 		for (Group group : groups) {
 			alphaBeta(group);
@@ -563,6 +557,9 @@ public class MyBot extends Bot {
 						+ group.enemyAntsInCombat);
 				logger.println("group max number of close ant: "
 						+ group.maxNumCloseOwnAnts);
+				
+				group.size = group.myAntsInCombat.size() + group.enemyAntsInCombat.size();
+				
 				groups.add(group);
 			}
 		}
