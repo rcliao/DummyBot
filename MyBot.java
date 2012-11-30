@@ -39,8 +39,8 @@ public class MyBot extends Bot {
 	}
 
 	/**
-	 * A* Path finding algorithm, this function is going to just find out what is ant
-	 * next tile to move and assign ant to do move to next tile
+	 * A* Path finding algorithm, this function is going to just find out what
+	 * is ant next tile to move and assign ant to do move to next tile
 	 */
 	public boolean aStar(Tile start, Tile target, String mission) {
 
@@ -277,7 +277,7 @@ public class MyBot extends Bot {
 				tile.reached = false;
 		}
 	}
-	
+
 	private void explore() {
 		initExplore();
 
@@ -311,7 +311,8 @@ public class MyBot extends Bot {
 		}
 		while (!openList.isEmpty()) {
 			Tile tile = openList.removeFirst();
-			if (ants.getIlk(tile).isEnemyAnt()) enemyArround = true;
+			if (ants.getIlk(tile).isEnemyAnt())
+				enemyArround = true;
 			if (!ants.getMyHills().isEmpty())
 				if (tile.dist == 10
 						&& ants.getDistance(
@@ -413,6 +414,7 @@ public class MyBot extends Bot {
 			return false;
 		}
 	}
+
 	private boolean doMoveLocation(Tile antLoc, Tile destLoc, String mission) {
 		// Track targets to prevent 2 ants to the same location
 		if (!isMissionPhase && antLoc.hasMission) {
@@ -493,7 +495,6 @@ public class MyBot extends Bot {
 			}
 		}
 	}
-	
 
 	// the whole combat method
 	private void combat() {
@@ -517,7 +518,8 @@ public class MyBot extends Bot {
 	// define a list to contains all the groups
 	private List<Group> groups = new LinkedList<Group>();
 
-	// define ants who is in combat to be included in a group and add this group to list
+	// define ants who is in combat to be included in a group and add this group
+	// to list
 	private void defineGroups() {
 		for (Tile myAnt : myAnts) {
 			boolean inGroup = false;
@@ -547,6 +549,14 @@ public class MyBot extends Bot {
 					}
 				}
 			}
+			
+			for (Tile enemy: group.enemyAntsInCombat) {
+				for (Tile myHill: ants.getMyHills()) {
+					if (ants.getDistance(myHill, enemy) <= 49) {
+						group.isAggressive = true;
+					}
+				}
+			}
 
 			if (!group.myAntsInCombat.isEmpty()
 					&& !group.enemyAntsInCombat.isEmpty()) {
@@ -557,9 +567,10 @@ public class MyBot extends Bot {
 						+ group.enemyAntsInCombat);
 				logger.println("group max number of close ant: "
 						+ group.maxNumCloseOwnAnts);
-				
-				group.size = group.myAntsInCombat.size() + group.enemyAntsInCombat.size();
-				
+
+				group.size = group.myAntsInCombat.size()
+						+ group.enemyAntsInCombat.size();
+
 				groups.add(group);
 			}
 		}
@@ -883,7 +894,6 @@ public class MyBot extends Bot {
 			return 0;
 		int myAntDead = 0;
 		int enemyAntDead = 0;
-		boolean ifAggressive = false;
 
 		// calculating the number of enemy for my Ant
 		for (Tile myAnt : group.myAntsInCombat) {
@@ -951,12 +961,14 @@ public class MyBot extends Bot {
 		for (Tile enemyAnt : group.enemyAntsInCombat) {
 			enemyAnt.target.enemyInRange = 0;
 		}
+		if (group.isAggressive = false) {
+			// aggression check
+			group.isAggressive = group.maxNumCloseOwnAnts >= 8
+					|| group.myAntsInCombat.size() > group.enemyAntsInCombat
+							.size() + 3;
+		}
 
-		// aggression check
-		ifAggressive = group.maxNumCloseOwnAnts >= 8
-				|| group.myAntsInCombat.size() > group.enemyAntsInCombat.size() + 3;
-
-		if (ifAggressive)
+		if (group.isAggressive)
 			return enemyAntDead * 300 - myAntDead * 150;
 		else
 			return enemyAntDead * 300 - myAntDead * 400;
@@ -983,7 +995,8 @@ public class MyBot extends Bot {
 		}
 	}
 
-	// this method is going to add all the place that is calling backup to the list
+	// this method is going to add all the place that is calling backup to the
+	// list
 	private void supplyList() {
 		for (Tile[] row : map)
 			for (Tile tile : row) {
@@ -1146,6 +1159,11 @@ public class MyBot extends Bot {
 		return backUp;
 	}
 
+	// defence hil lmethod
+	public void defence() {
+
+	}
+
 	// what ant is going to do for each turn
 	@Override
 	public void doTurn() {
@@ -1166,8 +1184,6 @@ public class MyBot extends Bot {
 		foodFinding();
 
 		combat();
-
-		// defence();
 
 		isTimeOut = false;
 
