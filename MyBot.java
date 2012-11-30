@@ -6,6 +6,7 @@ import java.util.Map.Entry;
  * Starter bot implementation.
  */
 public class MyBot extends Bot {
+	// local variables
 	private Map<Tile, Tile> orders = new HashMap<Tile, Tile>();
 	private Logger logger;
 	private LinkedList<Tile> myAnts = new LinkedList<Tile>();
@@ -32,12 +33,14 @@ public class MyBot extends Bot {
 		new MyBot().readSystemInput();
 	}
 
+	// create a logger for testing purpose
 	public void init() {
 		logger = new Logger("EricDummyBotDebug.txt");
 	}
 
 	/**
-	 * A* Path finding algorithm
+	 * A* Path finding algorithm, this function is going to just find out what is ant
+	 * next tile to move and assign ant to do move to next tile
 	 */
 	public boolean aStar(Tile start, Tile target, String mission) {
 
@@ -98,6 +101,7 @@ public class MyBot extends Bot {
 		return false;
 	}
 
+	// aStar2 is going to return the next tile
 	public Tile aStar2(Tile start, Tile target) {
 
 		LinkedList<Tile> closedList = new LinkedList<Tile>();
@@ -158,6 +162,7 @@ public class MyBot extends Bot {
 		return null;
 	}
 
+	// BFS starting at all the foods at once and assign one ant to each food
 	private void foodFinding() {
 		HashMap<Tile, Boolean> isEnemyNearFood = new HashMap<Tile, Boolean>();
 		LinkedList<Tile> foodTiles = new LinkedList<Tile>(ants.getFoodTiles());
@@ -232,11 +237,9 @@ public class MyBot extends Bot {
 			tile.reached = false;
 	}
 
+	// BFS from enemy hill and assign max to 4 ants to attack
 	private void hillsAttacking() {
 		LinkedList<Tile> enemyHills = new LinkedList<Tile>(ants.getEnemyHills());
-
-		// logger.println("=time used to locate all foods: " +
-		// (System.currentTimeMillis()-startTime) + "ms");
 
 		for (Tile hill : enemyHills) {
 			hill.backUp = true;
@@ -274,7 +277,18 @@ public class MyBot extends Bot {
 				tile.reached = false;
 		}
 	}
+	
+	private void explore() {
+		initExplore();
 
+		for (Tile antLoc : myAnts) {
+			if (!orders.containsValue(antLoc) && !antLoc.hasMission) {
+				exploreAnt(antLoc);
+			}
+		}
+	}
+
+	// send ant to explore by BFS up to 11 tiles
 	private boolean exploreAnt(Tile antTile) {
 		boolean enemyArround = false;
 		HashMap<Tile, Integer> values;
@@ -354,6 +368,7 @@ public class MyBot extends Bot {
 		return true;
 	}
 
+	// initatize the explore value
 	private void initExplore() {
 
 		LinkedList<Tile> openList = new LinkedList<Tile>();
@@ -386,6 +401,7 @@ public class MyBot extends Bot {
 			tile.reached = false;
 	}
 
+	// default method from starter package
 	private boolean doMoveDirection(Tile antLoc, Aim direction) {
 		// Track all moves, prevent collisions
 		Tile newLoc = ants.getTile(antLoc, direction);
@@ -397,7 +413,6 @@ public class MyBot extends Bot {
 			return false;
 		}
 	}
-
 	private boolean doMoveLocation(Tile antLoc, Tile destLoc, String mission) {
 		// Track targets to prevent 2 ants to the same location
 		if (!isMissionPhase && antLoc.hasMission) {
@@ -416,6 +431,7 @@ public class MyBot extends Bot {
 		return false;
 	}
 
+	// initialize the variables
 	private void initTurn() {
 		ants = getAnts();
 
@@ -478,6 +494,7 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// defining combat group as group object
 	class Group {
 		LinkedList<Tile> myAntsInCombat = new LinkedList<Tile>();
 		LinkedList<Tile> enemyAntsInCombat = new LinkedList<Tile>();
@@ -485,6 +502,7 @@ public class MyBot extends Bot {
 		boolean isAggressive = false;
 	}
 
+	// the whole combat method
 	private void combat() {
 		defineGroups();
 		defineMoves();
@@ -502,8 +520,10 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// define a list to contains all the groups
 	private List<Group> groups = new LinkedList<Group>();
 
+	// define ants who is in combat to be included in a group and add this group to list
 	private void defineGroups() {
 		for (Tile myAnt : myAnts) {
 			boolean inGroup = false;
@@ -548,6 +568,7 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// find all nearby enemies for this ant (can be enemy, or mine)
 	private LinkedList<Tile> findEnemies(Tile ant, Group group) {
 		LinkedList<Tile> result = new LinkedList<Tile>();
 		if (ants.getIlk(ant).isMyAnt()) {
@@ -588,6 +609,7 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// defined danger zone and border
 	private void defineBattleField() {
 		for (Tile enemyAnt : enemyAnts) {
 			LinkedList<Tile> openList = new LinkedList<Tile>();
@@ -646,6 +668,7 @@ public class MyBot extends Bot {
 
 	}
 
+	// trying to make a better escape move by move toward my ant
 	private void betterEscape() {
 		for (Tile myAnt : myAnts) {
 			if (!(myAnt.isBattleField)) {
@@ -685,6 +708,7 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// combat optimization by reducing calculation on moves
 	private void defineMoves() {
 		betterEscape();
 		for (Group group : groups) {
@@ -769,6 +793,7 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// combat calculation from alphabeta to evaluate
 	private void alphaBeta(Group group) {
 		bestPrecValue = Integer.MIN_VALUE;
 		max(0, group);
@@ -940,6 +965,7 @@ public class MyBot extends Bot {
 			return enemyAntDead * 300 - myAntDead * 400;
 	}
 
+	// just a method to prevent my ant killing each other
 	private void preventTeamKill() {
 		for (Tile myAnt : myAnts) {
 			if (orders.containsKey(myAnt) && !orders.containsValue(myAnt)) {
@@ -960,16 +986,7 @@ public class MyBot extends Bot {
 		}
 	}
 
-	private void explore() {
-		initExplore();
-
-		for (Tile antLoc : myAnts) {
-			if (!orders.containsValue(antLoc) && !antLoc.hasMission) {
-				exploreAnt(antLoc);
-			}
-		}
-	}
-
+	// this method is going to add all the place that is calling backup to the list
 	private void supplyList() {
 		for (Tile[] row : map)
 			for (Tile tile : row) {
@@ -978,6 +995,7 @@ public class MyBot extends Bot {
 			}
 	}
 
+	// creating mission for ant to move to the specific target between turns
 	class Mission {
 		Tile target;
 		Tile antLoc;
@@ -985,6 +1003,7 @@ public class MyBot extends Bot {
 		boolean isRemoved;
 	}
 
+	// remove the mission that should be removed
 	private void initMissions() {
 		ListIterator<Mission> it = missions.listIterator();
 		while (it.hasNext()) {
@@ -1004,6 +1023,7 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// for each my ant, keep up with their assigned mission
 	private void doMissions() {
 		isTimeOut = false;
 		isMissionPhase = true;
@@ -1012,6 +1032,7 @@ public class MyBot extends Bot {
 		isMissionPhase = false;
 	}
 
+	// do mission on single ant
 	private void doMission(Mission m) {
 		if (m.isRemoved)
 			return;
@@ -1044,6 +1065,7 @@ public class MyBot extends Bot {
 
 	}
 
+	// update the mission target to the correct tile who need back up
 	private void updateMission(Mission m) {
 		logger.println("update mission from " + m.antLoc + " to " + m.target);
 		Tile searchStartTile = !ants.getIlk(m.target).isPassable() ? m.antLoc
@@ -1056,6 +1078,7 @@ public class MyBot extends Bot {
 			logger.println("borderTile = null !");
 	}
 
+	// create mission for those ant are surrounded by my own ants
 	private void createMissions() {
 		if (isTimeOut)
 			return;
@@ -1088,6 +1111,7 @@ public class MyBot extends Bot {
 		}
 	}
 
+	// BFS to find closest tile which is calling for back up
 	private Tile findBackUp(Tile startTile) {
 		if (ants.getTimeRemaining() < 160)
 			return startTile;
@@ -1125,28 +1149,12 @@ public class MyBot extends Bot {
 		return backUp;
 	}
 
+	// what ant is going to do for each turn
 	@Override
 	public void doTurn() {
 		Ants ants = getAnts();
 		map = ants.mapTiles;
 		orders.clear();
-
-		// prevent stepping on own hill
-		// for (Tile myHill : ants.getMyHills()) {
-		// orders.put(myHill, null);
-		// }
-
-		// // unblock hills
-		// for (Tile myHill : ants.getMyHills()) {
-		// if (ants.getMyAnts().contains(myHill)
-		// && !orders.containsValue(myHill)) {
-		// for (Aim direction : Aim.values()) {
-		// if (doMoveDirection(myHill, direction)) {
-		// break;
-		// }
-		// }
-		// }
-		// }
 
 		initTurn();
 
