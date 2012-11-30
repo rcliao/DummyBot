@@ -1034,7 +1034,7 @@ public class MyBot extends Bot {
 		if (m.isRemoved)
 			return;
 		Tile ant = m.antLoc;
-		if (ants.getTimeRemaining() < 120)
+		if (ants.getTimeRemaining() < 60)
 			isTimeOut = true;
 		if (isTimeOut || orders.containsValue(ant)) {
 			return;
@@ -1110,7 +1110,7 @@ public class MyBot extends Bot {
 
 	// BFS to find closest tile which is calling for back up
 	private Tile findBackUp(Tile startTile) {
-		if (ants.getTimeRemaining() < 160)
+		if (ants.getTimeRemaining() < 60)
 			return startTile;
 		if (startTile.backUp)
 			return startTile;
