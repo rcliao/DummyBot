@@ -134,7 +134,7 @@ public class MyBot extends Bot {
 			closedList.add(currentTile);
 
 			for (Tile n : currentTile.neighbors) {
-				if (ants.getIlk(n).isPassable()) {
+				if (ants.getIlk(n).isUnoccupied() || n == start) {
 					if (closedList.contains(n)) {
 						continue;
 					}
@@ -142,8 +142,7 @@ public class MyBot extends Bot {
 					int newG = currentTile.g_score + 1;
 
 					if (!openList.contains(n)
-							&& (ants.getIlk(n).isPassable() || ants
-									.getMyHills().contains(n))) {
+							|| (ants.getMyHills().contains(n))) {
 						openList.add(n);
 						n.parent = currentTile;
 						n.g_score = newG;
@@ -199,6 +198,22 @@ public class MyBot extends Bot {
 			}
 			if (tile.dist >= 10) {
 				break;
+			}
+			if (ants.getIlk(tile).isMyAnt() && !orders.containsValue(tile) && tile.dist == 1) {
+				doMoveLocation(tile, tile, "food");
+				Iterator<Tile> it = closedList.iterator(); // should be openList
+				while (it.hasNext()) {
+					Tile t = it.next();
+					if (t.source == tile.source) {
+						t.reached = false;
+						it.remove();
+					}
+				}
+				it = openList.iterator(); // should be closeList
+				// maybe don't need close List
+				while (it.hasNext())
+					if (!it.next().reached)
+						it.remove();
 			}
 			if (tile.ilk.isMyAnt() && !orders.containsValue(tile)
 					&& !(tile.isBattleField)) {
@@ -314,11 +329,7 @@ public class MyBot extends Bot {
 			if (ants.getIlk(tile).isEnemyAnt())
 				enemyArround = true;
 			if (!ants.getMyHills().isEmpty())
-				if (tile.dist == 9
-						&& ants.getDistance(
-								new LinkedList<Tile>(ants.getMyHills()).get(0),
-								tile) >= 225 && ants.getIlk(tile).isPassable()
-						&& !enemyArround)
+				if (!ants.isVisible(tile) && tile.dist > 10 && !enemyArround)
 					tile.backUp = true;
 			if (tile.dist > 12) {
 				for (Tile prevFirst : tile.prevTiles)
