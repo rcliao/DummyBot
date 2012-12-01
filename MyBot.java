@@ -162,64 +162,65 @@ public class MyBot extends Bot {
 	}
 
 	// using for mid game, late game
-	public boolean aStar4(Tile start, Tile target, String mission) {
+	// aStar2 is going to return the next tile
+		public Tile aStar4(Tile start, Tile target) {
 
-		LinkedList<Tile> closedList = new LinkedList<Tile>();
-		LinkedList<Tile> openList = new LinkedList<Tile>();
+			LinkedList<Tile> closedList = new LinkedList<Tile>();
+			LinkedList<Tile> openList = new LinkedList<Tile>();
 
-		Tile currentTile = target;
-		openList.add(currentTile);
-		currentTile.g_score = 0;
-		currentTile.h_score = ants.getDistance(target, start);
-		currentTile.f_score = currentTile.g_score + currentTile.h_score;
+			Tile currentTile = target;
+			openList.add(currentTile);
+			currentTile.g_score = 0;
+			currentTile.h_score = ants.getDistance(target, start);
+			currentTile.f_score = currentTile.g_score + currentTile.h_score;
 
-		while (!openList.isEmpty()) {
-			// find the smallest F score Tile in the list
-			Integer min = Integer.MAX_VALUE;
-			Iterator<Tile> a = openList.iterator();
-			while (a.hasNext()) {
-				Tile tile = a.next();
-				if (tile.f_score < min) {
-					min = tile.f_score;
-					currentTile = tile;
-				}
-			}
-
-			if (closedList.contains(start)) {
-				start.moveTo = start.parent;
-				doMoveLocation(start, start.parent, mission);
-				return true;
-			}
-
-			openList.remove(currentTile);
-			closedList.add(currentTile);
-
-			for (Tile n : currentTile.neighbors) {
-				if (ants.getIlk(n).isPassable() || n.equals(start)) {
-					if (closedList.contains(n)) {
-						continue;
-					}
-
-					int newG = currentTile.g_score + 1;
-
-					if (!openList.contains(n)) {
-						openList.add(n);
-						n.parent = currentTile;
-						n.g_score = newG;
-						n.h_score = ants.getDistance(n, start);
-						n.f_score = newG + n.h_score;
-					} else if (newG < n.g_score) {
-						n.parent = currentTile;
-						n.g_score = newG;
-						n.h_score = ants.getDistance(n, start);
-						n.f_score = newG + n.h_score;
+			while (!openList.isEmpty()) {
+				// find the smallest F score Tile in the list
+				Integer min = 99999;
+				Iterator<Tile> a = openList.iterator();
+				while (a.hasNext()) {
+					Tile tile = a.next();
+					if (tile.f_score < min) {
+						min = tile.f_score;
+						currentTile = tile;
 					}
 				}
+
+				if (closedList.contains(start)) {
+					start.moveTo = start.parent;
+					return start.parent;
+				}
+
+				openList.remove(currentTile);
+				closedList.add(currentTile);
+
+				for (Tile n : currentTile.neighbors) {
+					if (ants.getIlk(n).isPassable() || n == start) {
+						if (closedList.contains(n)) {
+							continue;
+						}
+
+						int newG = currentTile.g_score + 1;
+
+						if (!openList.contains(n)
+								|| (ants.getMyHills().contains(n))) {
+							openList.add(n);
+							n.parent = currentTile;
+							n.g_score = newG;
+							n.h_score = ants.getDistance(n, start);
+							n.f_score = newG + n.h_score;
+						} else if (newG < n.g_score) {
+							n.parent = currentTile;
+							n.g_score = newG;
+							n.h_score = ants.getDistance(n, start);
+							n.f_score = newG + n.h_score;
+						}
+					}
+				}
 			}
+			logger.println("a star 4 doesn't find path!");
+			return null;
 		}
-		logger.println("***Error: A* FAIL to find path");
-		return false;
-	}
 
 	// BFS starting at all the foods at once and assign one ant to each food
 	private void foodFinding() {
@@ -626,14 +627,12 @@ public class MyBot extends Bot {
 
 			if (!group.myAntsInCombat.isEmpty()
 					&& !group.enemyAntsInCombat.isEmpty()) {
-				// testing purpose print out all the ants in group
-				logger.println("my ants in combat group: "
-						+ group.myAntsInCombat);
-				logger.println("enemy ants in combat gorup: "
-						+ group.enemyAntsInCombat);
-				logger.println("group max number of close ant: "
-						+ group.maxNumCloseOwnAnts);
-
+				// when battlefield is near my hill, start trade
+				for (Tile enemy : group.enemyAntsInCombat) {
+					for (Tile myhill : ants.getMyHills())
+						if (ants.getDistance(enemy, myhill) <= 49)
+							group.isAggressive = true;
+				}
 				group.size = group.myAntsInCombat.size()
 						+ group.enemyAntsInCombat.size();
 
@@ -1034,8 +1033,10 @@ public class MyBot extends Bot {
 			enemyAnt.target.enemyInRange = 0;
 		}
 		// aggression check
-		group.isAggressive = group.maxNumCloseOwnAnts >= 10
-				|| group.myAntsInCombat.size() > group.enemyAntsInCombat.size() + 3;
+		if (!group.isAggressive)
+			group.isAggressive = group.maxNumCloseOwnAnts >= 10
+					|| group.myAntsInCombat.size() > group.enemyAntsInCombat
+							.size() + 3;
 
 		if (group.isAggressive)
 			return enemyAntDead * 300 - myAntDead * 200;
@@ -1123,7 +1124,11 @@ public class MyBot extends Bot {
 		}
 		if (turn - m.lastUpdated >= 10 || ants.getTimeRemaining() > 200)
 			updateMission(m);
-		Tile next = aStar2(ant, m.target);
+		Tile next;
+		if (turn <= 300)
+			next = aStar2(ant, m.target);
+		else
+			next = aStar4(ant, m.target);
 		if (next == null) {
 			m.isRemoved = true;
 			ant.hasMission = false;
@@ -1396,7 +1401,7 @@ public class MyBot extends Bot {
 
 		combat();
 
-//		defense();
+		// defense();
 
 		isTimeOut = false;
 
