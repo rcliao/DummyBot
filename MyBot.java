@@ -55,7 +55,7 @@ public class MyBot extends Bot {
 
 		while (!openList.isEmpty()) {
 			// find the smallest F score Tile in the list
-			Integer min = 99999;
+			Integer min = Integer.MAX_VALUE;
 			Iterator<Tile> a = openList.iterator();
 			while (a.hasNext()) {
 				Tile tile = a.next();
@@ -75,14 +75,14 @@ public class MyBot extends Bot {
 			closedList.add(currentTile);
 
 			for (Tile n : currentTile.neighbors) {
-				if (ants.getIlk(n).isPassable() || n == start) {
+				if (ants.getIlk(n).isUnoccupied() || n.equals(start)) {
 					if (closedList.contains(n)) {
 						continue;
 					}
 
 					int newG = currentTile.g_score + 1;
 
-					if (!openList.contains(n) && ants.getIlk(n).isPassable()) {
+					if (!openList.contains(n)) {
 						openList.add(n);
 						n.parent = currentTile;
 						n.g_score = newG;
@@ -314,7 +314,7 @@ public class MyBot extends Bot {
 			if (ants.getIlk(tile).isEnemyAnt())
 				enemyArround = true;
 			if (!ants.getMyHills().isEmpty())
-				if (tile.dist == 10
+				if (tile.dist == 9
 						&& ants.getDistance(
 								new LinkedList<Tile>(ants.getMyHills()).get(0),
 								tile) >= 225 && ants.getIlk(tile).isPassable()
@@ -679,7 +679,7 @@ public class MyBot extends Bot {
 	// trying to make a better escape move by move toward my ant
 	private void betterEscape() {
 		for (Tile myAnt : myAnts) {
-			if (!(myAnt.isBattleField)) {
+			if (!(myAnt.isBattleField || myAnt.isBorder)) {
 				LinkedList<Tile> openList = new LinkedList<Tile>();
 				LinkedList<Tile> closedList = new LinkedList<Tile>();
 
@@ -694,7 +694,7 @@ public class MyBot extends Bot {
 						break;
 					}
 					if (ants.getIlk(tile).isPassable() && !tile.equals(myAnt)) {
-						tile.escapeForce += 16 / Math.pow(tile.dist, 2);
+						tile.escapeForce += 49 / Math.pow(tile.dist, 2);
 					}
 					if (tile.dist < 12) {
 						for (Tile n : tile.neighbors) {
@@ -961,9 +961,9 @@ public class MyBot extends Bot {
 		for (Tile enemyAnt : group.enemyAntsInCombat) {
 			enemyAnt.target.enemyInRange = 0;
 		}
-		if (group.isAggressive = false) {
+		if (!group.isAggressive) {
 			// aggression check
-			group.isAggressive = group.maxNumCloseOwnAnts >= 8
+			group.isAggressive = group.maxNumCloseOwnAnts >= 10
 					|| group.myAntsInCombat.size() > group.enemyAntsInCombat
 							.size() + 3;
 		}
