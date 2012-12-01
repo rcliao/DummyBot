@@ -199,7 +199,8 @@ public class MyBot extends Bot {
 			if (tile.dist >= 10) {
 				break;
 			}
-			if (ants.getIlk(tile).isMyAnt() && !orders.containsValue(tile) && tile.dist == 1) {
+			if (ants.getIlk(tile).isMyAnt() && !orders.containsValue(tile)
+					&& tile.dist == 1) {
 				doMoveLocation(tile, tile, "food");
 				Iterator<Tile> it = closedList.iterator(); // should be openList
 				while (it.hasNext()) {
@@ -338,18 +339,20 @@ public class MyBot extends Bot {
 				continue;
 			}
 			for (Tile n : tile.neighbors) {
-				if (n.reached) {
-					if (n.dist == tile.dist + 1) {
-						n.prevTiles.addAll(tile.prevTiles);
+				if (n.neighbors.length > 2) {
+					if (n.reached) {
+						if (n.dist == tile.dist + 1) {
+							n.prevTiles.addAll(tile.prevTiles);
+						}
+						continue;
 					}
-					continue;
+					n.reached = true;
+					n.parent = tile;
+					n.dist = tile.dist + 1;
+					n.prevTiles.addAll(tile.prevTiles);
+					closedList.add(n);
+					openList.add(n);
 				}
-				n.reached = true;
-				n.parent = tile;
-				n.dist = tile.dist + 1;
-				n.prevTiles.addAll(tile.prevTiles);
-				closedList.add(n);
-				openList.add(n);
 			}
 		}
 		int bestValue = 0;
@@ -733,13 +736,16 @@ public class MyBot extends Bot {
 				double escapeForce = 0;
 				Tile goodEscapeTile = myAnt;
 				for (Tile target : myAnt.neighbors) {
-					if (target.isBattleField) {
-						myAnt.aggressiveMoves.add(target);
-					}
-					if (myAnt.passiveMove.isEmpty() && !target.isBattleField
-							&& target.neighbors.length > 2) {
-						if (target.escapeForce > escapeForce)
-							goodEscapeTile = target;
+					if (target.neighbors.length > 2) {
+						if (target.isBattleField) {
+							myAnt.aggressiveMoves.add(target);
+						}
+						if (myAnt.passiveMove.isEmpty()
+								&& !target.isBattleField
+								&& target.neighbors.length > 2) {
+							if (target.escapeForce > escapeForce)
+								goodEscapeTile = target;
+						}
 					}
 				}
 				if (myAnt.passiveMove.isEmpty())
