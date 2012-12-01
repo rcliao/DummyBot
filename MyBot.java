@@ -549,14 +549,6 @@ public class MyBot extends Bot {
 					}
 				}
 			}
-			
-			for (Tile enemy: group.enemyAntsInCombat) {
-				for (Tile myHill: ants.getMyHills()) {
-					if (ants.getDistance(myHill, enemy) <= 49) {
-						group.isAggressive = true;
-					}
-				}
-			}
 
 			if (!group.myAntsInCombat.isEmpty()
 					&& !group.enemyAntsInCombat.isEmpty()) {
@@ -813,6 +805,9 @@ public class MyBot extends Bot {
 		if (ants.getTimeRemaining() < 160)
 			isTimeOut = true;
 		if (isTimeOut) {
+			for (Tile myAnt : group.myAntsInCombat) {
+				myAnt.target = myAnt;
+			}
 			logger.println("left time: " + ants.getTimeRemaining());
 			logger.println("!time out! preventing from combat calculation!");
 			return;
@@ -961,17 +956,14 @@ public class MyBot extends Bot {
 		for (Tile enemyAnt : group.enemyAntsInCombat) {
 			enemyAnt.target.enemyInRange = 0;
 		}
-		if (!group.isAggressive) {
-			// aggression check
-			group.isAggressive = group.maxNumCloseOwnAnts >= 10
-					|| group.myAntsInCombat.size() > group.enemyAntsInCombat
-							.size() + 3;
-		}
+		// aggression check
+		group.isAggressive = group.maxNumCloseOwnAnts >= 10
+				|| group.myAntsInCombat.size() > group.enemyAntsInCombat.size() + 3;
 
 		if (group.isAggressive)
-			return enemyAntDead * 300 - myAntDead * 150;
+			return enemyAntDead * 300 - myAntDead * 200;
 		else
-			return enemyAntDead * 300 - myAntDead * 400;
+			return enemyAntDead * 200 - myAntDead * 300;
 	}
 
 	// just a method to prevent my ant killing each other
