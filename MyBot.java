@@ -339,20 +339,19 @@ public class MyBot extends Bot {
 				continue;
 			}
 			for (Tile n : tile.neighbors) {
-				if (n.neighbors.length > 2) {
-					if (n.reached) {
-						if (n.dist == tile.dist + 1) {
-							n.prevTiles.addAll(tile.prevTiles);
-						}
-						continue;
+				if (n.reached) {
+					if (n.dist == tile.dist + 1) {
+						n.prevTiles.addAll(tile.prevTiles);
 					}
-					n.reached = true;
-					n.parent = tile;
-					n.dist = tile.dist + 1;
-					n.prevTiles.addAll(tile.prevTiles);
-					closedList.add(n);
-					openList.add(n);
+					continue;
 				}
+				n.reached = true;
+				n.parent = tile;
+				n.dist = tile.dist + 1;
+				n.prevTiles.addAll(tile.prevTiles);
+				closedList.add(n);
+				openList.add(n);
+
 			}
 		}
 		int bestValue = 0;
@@ -459,7 +458,6 @@ public class MyBot extends Bot {
 		supplyList = new LinkedList<Tile>();
 		for (Tile[] row : map)
 			for (Tile tile : row) {
-				if (tile.afterCombat != 0) tile.afterCombat --;
 				tile.exploreValue++;
 				tile.backUp = false;
 				tile.moves = new LinkedList<Tile>();
@@ -549,7 +547,6 @@ public class MyBot extends Bot {
 			LinkedList<Tile> openSet = new LinkedList<Tile>();
 
 			if (myAnt.isBorder || myAnt.isBattleField) {
-				myAnt.afterCombat = 3;
 				group.myAntsInCombat.add(myAnt);
 				group.maxNumCloseOwnAnts = Math.max(group.maxNumCloseOwnAnts,
 						myAnt.numCloseOwnAnts);
@@ -618,7 +615,6 @@ public class MyBot extends Bot {
 								.max(group.maxNumCloseOwnAnts,
 										myAnt.numCloseOwnAnts);
 						result.add(myAnt);
-						myAnt.afterCombat = 3;
 					}
 				}
 			}
@@ -658,8 +654,7 @@ public class MyBot extends Bot {
 					}
 					if ((dx + dy == 5 || (dx == 4 && dy == 0) || (dy == 4 && dx == 0))
 							&& !((dx == 0 && dy == 5) || (dy == 0 && dx == 5))
-							&& !(tile.isBattleField)
-							&& tile.neighbors.length > 1) {
+							&& !(tile.isBattleField)) {
 						tile.isBorder = true;
 						if (ants.getIlk(tile).isUnoccupied())
 							tile.backUp = true;
