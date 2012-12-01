@@ -201,7 +201,7 @@ public class MyBot extends Bot {
 			}
 			if (ants.getIlk(tile).isMyAnt() && !orders.containsValue(tile)
 					&& tile.dist == 1) {
-				doMoveLocation(tile, tile, "food");
+				orders.put(tile, tile);
 				Iterator<Tile> it = closedList.iterator(); // should be openList
 				while (it.hasNext()) {
 					Tile t = it.next();
@@ -546,7 +546,8 @@ public class MyBot extends Bot {
 			Group group = new Group();
 			LinkedList<Tile> openSet = new LinkedList<Tile>();
 
-			if (myAnt.isBorder || myAnt.isBattleField) {
+			if (myAnt.isBorder
+					|| myAnt.isBattleField && !orders.containsValue(myAnt)) {
 				group.myAntsInCombat.add(myAnt);
 				group.maxNumCloseOwnAnts = Math.max(group.maxNumCloseOwnAnts,
 						myAnt.numCloseOwnAnts);
@@ -602,7 +603,8 @@ public class MyBot extends Bot {
 			return result;
 		} else {
 			for (Tile myAnt : myAnts) {
-				if (!group.myAntsInCombat.contains(myAnt)) {
+				if (!group.myAntsInCombat.contains(myAnt)
+						&& !orders.containsValue(myAnt)) {
 					int dx = Math.abs(ant.getRow() - myAnt.getRow());
 					int dy = Math.abs(ant.getCol() - myAnt.getCol());
 					if (dx >= ants.getRows() - 5)
@@ -1054,7 +1056,7 @@ public class MyBot extends Bot {
 		if (m.isRemoved)
 			return;
 		Tile ant = m.antLoc;
-		if (ants.getTimeRemaining() < 60)
+		if (ants.getTimeRemaining() < 120)
 			isTimeOut = true;
 		if (isTimeOut || orders.containsValue(ant)) {
 			return;
@@ -1130,11 +1132,11 @@ public class MyBot extends Bot {
 
 	// BFS to find closest tile which is calling for back up
 	private Tile findBackUp(Tile startTile) {
-		if (ants.getTimeRemaining() < 60)
+		if (isTimeOut)
 			return startTile;
 		if (startTile.backUp)
 			return startTile;
-		final int maxDist = 400;
+		final int maxDist = 200;
 		Tile backUp = null;
 		LinkedList<Tile> openList = new LinkedList<Tile>();
 		LinkedList<Tile> changedTiles = new LinkedList<Tile>();
@@ -1166,9 +1168,149 @@ public class MyBot extends Bot {
 		return backUp;
 	}
 
-	// defence hil lmethod
-	public void defence() {
+	// Defense hill method
+	public void defense() {
+		if (!ants.getMyHills().isEmpty()) {
+			for (Tile myHill : ants.getMyHills()) {
+				LinkedList<Tile> nearByEnemies = findNearByEnemy(myHill);
+				for (Tile nearEnemy : nearByEnemies) {
+					HashMap<Tile, Integer> pathToMyHill = aStar3(nearEnemy,
+							myHill);
+					for (Entry<Tile, Integer> enemyDistance : pathToMyHill
+							.entrySet()) {
+						if (moveMyAntToDefense(enemyDistance.getKey(),
+								enemyDistance.getValue() + 2))
+							break;
+					}
+				}
+			}
+		}
+	}
 
+	public boolean moveMyAntToDefense(Tile startTile, int dist) {
+		LinkedList<Tile> openList = new LinkedList<Tile>();
+		LinkedList<Tile> changedTiles = new LinkedList<Tile>();
+		openList.add(startTile);
+		startTile.dist = 0;
+		startTile.reached = true;
+		changedTiles.add(startTile);
+		while (!openList.isEmpty()) {
+			Tile tile = openList.removeFirst();
+			if (tile.dist >= dist)
+				break;
+			for (Tile n : tile.neighbors) {
+				if (ants.getIlk(n).isMyAnt()) {
+					doMoveLocation(n, n.parent, "to difense");
+					return true;
+				}
+				if (n.reached)
+					continue;
+				n.parent = tile;
+				n.reached = true;
+				n.dist = tile.dist + 1;
+				changedTiles.add(n);
+				openList.add(n);
+			}
+		}
+		for (Tile tile : changedTiles)
+			tile.reached = false;
+		return false;
+	}
+
+	public LinkedList<Tile> findNearByEnemy(Tile myHill) {
+		LinkedList<Tile> result = new LinkedList<Tile>();
+		LinkedList<Tile> openList = new LinkedList<Tile>();
+		LinkedList<Tile> changedTiles = new LinkedList<Tile>();
+		openList.add(myHill);
+		myHill.dist = 0;
+		myHill.reached = true;
+		changedTiles.add(myHill);
+		while (!openList.isEmpty()) {
+			Tile tile = openList.removeFirst();
+			if (tile.dist >= 14)
+				break;
+			for (Tile n : tile.neighbors) {
+				if (ants.getIlk(n).isEnemyAnt()) {
+					result.add(n);
+				}
+				if (n.reached)
+					continue;
+				n.reached = true;
+				n.dist = tile.dist + 1;
+				changedTiles.add(n);
+				openList.add(n);
+			}
+		}
+		for (Tile tile : changedTiles)
+			tile.reached = false;
+		return result;
+	}
+
+	public HashMap<Tile, Integer> aStar3(Tile start, Tile target) {
+		HashMap<Tile, Integer> result = new HashMap<Tile, Integer>();
+
+		LinkedList<Tile> closedList = new LinkedList<Tile>();
+		LinkedList<Tile> openList = new LinkedList<Tile>();
+
+		Tile currentTile = target;
+		openList.add(currentTile);
+		currentTile.g_score = 0;
+		currentTile.h_score = ants.getDistance(target, start);
+		currentTile.f_score = currentTile.g_score + currentTile.h_score;
+
+		while (!openList.isEmpty()) {
+			// find the smallest F score Tile in the list
+			Integer min = 99999;
+			Iterator<Tile> a = openList.iterator();
+			while (a.hasNext()) {
+				Tile tile = a.next();
+				if (tile.f_score < min) {
+					min = tile.f_score;
+					currentTile = tile;
+				}
+			}
+
+			if (closedList.contains(start)) {
+				int dist = 0;
+				result.put(start, dist);
+				Tile curr = start;
+				while (curr.parent != target) {
+					curr = start.parent;
+					dist++;
+					result.put(start, dist);
+				}
+				result.put(target, dist);
+			}
+
+			openList.remove(currentTile);
+			closedList.add(currentTile);
+
+			for (Tile n : currentTile.neighbors) {
+				if (ants.getIlk(n).isUnoccupied() || n == start) {
+					if (closedList.contains(n)) {
+						continue;
+					}
+
+					int newG = currentTile.g_score + 1;
+
+					if (!openList.contains(n)
+							|| (ants.getMyHills().contains(n))) {
+						openList.add(n);
+						n.parent = currentTile;
+						n.g_score = newG;
+						n.h_score = ants.getDistance(n, start);
+						n.f_score = newG + n.h_score;
+					} else if (newG < n.g_score) {
+						n.parent = currentTile;
+						n.g_score = newG;
+						n.h_score = ants.getDistance(n, start);
+						n.f_score = newG + n.h_score;
+					}
+				}
+			}
+		}
+		logger.println("a star 2 doesn't find path!");
+		return result;
 	}
 
 	// what ant is going to do for each turn
@@ -1191,6 +1333,8 @@ public class MyBot extends Bot {
 		foodFinding();
 
 		combat();
+
+		defense();
 
 		isTimeOut = false;
 
