@@ -974,7 +974,7 @@ public class MyBot extends Bot {
 		if (group.isAggressive)
 			return enemyAntDead * 300 - myAntDead * 200;
 		else
-			return enemyAntDead * 200 - myAntDead * 300;
+			return enemyAntDead * 200 - myAntDead * 350;
 	}
 
 	// just a method to prevent my ant killing each other
