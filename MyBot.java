@@ -161,6 +161,66 @@ public class MyBot extends Bot {
 		return null;
 	}
 
+	// aStar2 is going to return the next tile
+	public Tile aStar4(Tile start, Tile target) {
+
+		LinkedList<Tile> closedList = new LinkedList<Tile>();
+		LinkedList<Tile> openList = new LinkedList<Tile>();
+
+		Tile currentTile = target;
+		openList.add(currentTile);
+		currentTile.g_score = 0;
+		currentTile.h_score = ants.getDistance(target, start);
+		currentTile.f_score = currentTile.g_score + currentTile.h_score;
+
+		while (!openList.isEmpty()) {
+			// find the smallest F score Tile in the list
+			Integer min = 99999;
+			Iterator<Tile> a = openList.iterator();
+			while (a.hasNext()) {
+				Tile tile = a.next();
+				if (tile.f_score < min) {
+					min = tile.f_score;
+					currentTile = tile;
+				}
+			}
+
+			if (closedList.contains(start)) {
+				start.moveTo = start.parent;
+				return start.parent;
+			}
+
+			openList.remove(currentTile);
+			closedList.add(currentTile);
+
+			for (Tile n : currentTile.neighbors) {
+				if (ants.getIlk(n).isPassable() || n == start) {
+					if (closedList.contains(n)) {
+						continue;
+					}
+
+					int newG = currentTile.g_score + 1;
+
+					if (!openList.contains(n)
+							|| (ants.getMyHills().contains(n))) {
+						openList.add(n);
+						n.parent = currentTile;
+						n.g_score = newG;
+						n.h_score = ants.getDistance(n, start);
+						n.f_score = newG + n.h_score;
+					} else if (newG < n.g_score) {
+						n.parent = currentTile;
+						n.g_score = newG;
+						n.h_score = ants.getDistance(n, start);
+						n.f_score = newG + n.h_score;
+					}
+				}
+			}
+		}
+		logger.println("a star 4 doesn't find path!");
+		return null;
+	}
+
 	// BFS starting at all the foods at once and assign one ant to each food
 	private void foodFinding() {
 		HashMap<Tile, Boolean> isEnemyNearFood = new HashMap<Tile, Boolean>();
@@ -546,8 +606,8 @@ public class MyBot extends Bot {
 			Group group = new Group();
 			LinkedList<Tile> openSet = new LinkedList<Tile>();
 
-			if (myAnt.isBorder
-					|| myAnt.isBattleField && !orders.containsValue(myAnt)) {
+			if (myAnt.isBorder || myAnt.isBattleField
+					&& !orders.containsValue(myAnt)) {
 				group.myAntsInCombat.add(myAnt);
 				group.maxNumCloseOwnAnts = Math.max(group.maxNumCloseOwnAnts,
 						myAnt.numCloseOwnAnts);
@@ -1046,8 +1106,11 @@ public class MyBot extends Bot {
 	private void doMissions() {
 		isTimeOut = false;
 		isMissionPhase = true;
-		for (Mission m : missions)
+		for (Mission m : missions) {
+			if (isTimeOut)
+				break;
 			doMission(m);
+		}
 		isMissionPhase = false;
 	}
 
@@ -1064,6 +1127,8 @@ public class MyBot extends Bot {
 		if (turn - m.lastUpdated >= 10 || ants.getTimeRemaining() > 200)
 			updateMission(m);
 		Tile next = aStar2(ant, m.target);
+		if (next == null)
+			next = aStar4(ant, m.target);
 		if (next == null) {
 			m.isRemoved = true;
 			ant.hasMission = false;
@@ -1325,33 +1390,42 @@ public class MyBot extends Bot {
 		initMissions();
 
 		logger.println("============== turn " + turn);
+		logger.println("===rest of time after using to parse information: "
+				+ (ants.getTurnTime() - (System.currentTimeMillis() - startTime)));
 
 		defineBattleField();
-
+		logger.println("===rest of time after defining fields: "
+				+ (ants.getTurnTime() - (System.currentTimeMillis() - startTime)));
+		
 		hillsAttacking();
 
 		foodFinding();
+		logger.println("===rest of time after food gathering: "
+				+ (ants.getTurnTime() - (System.currentTimeMillis() - startTime)));
 
 		combat();
+		logger.println("===rest of time after combat: "
+				+ (ants.getTurnTime() - (System.currentTimeMillis() - startTime)));
 
 		defense();
 
 		isTimeOut = false;
 
 		explore();
+		logger.println("===rest of time after exploration: "
+				+ (ants.getTurnTime() - (System.currentTimeMillis() - startTime)));
 
 		supplyList();
 		doMissions();
+		logger.println("===rest of time after doing missions: "
+				+ (ants.getTurnTime() - (System.currentTimeMillis() - startTime)));
 		createMissions();
+		logger.println("===rest of time after creating missions: "
+				+ (ants.getTurnTime() - (System.currentTimeMillis() - startTime)));
 
 		preventTeamKill();
 
-		logger.println("my ants at this case: " + myAnts);
-		for (Tile freeAnt : myAnts) {
-			if (!orders.containsValue(freeAnt))
-				logger.println("there is free ant this turn: " + freeAnt);
-		}
-		logger.println("rest of Time from this turn=" + ants.getTimeRemaining()
+		logger.println("===rest of time from this turn=" + ants.getTimeRemaining()
 				+ "ms");
 	}
 }
